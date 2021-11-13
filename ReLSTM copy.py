@@ -284,7 +284,6 @@ def train_LSTMlm(n_class,emb_size,mid_layers=5):
     
     # Training
     batch_number = len(all_input_batch)
-    OKed=True
     tensors.clear()
     cells.clear()
     for epoch in range(all_epoch):
@@ -295,24 +294,17 @@ def train_LSTMlm(n_class,emb_size,mid_layers=5):
             # input_batch : [batch_size, n_step, n_class]
             
             output = model(input_batch)
-            if OKed:
-                print("OK");
             
 
             # output : [batch_size, n_class], target_batch : [batch_size] (LongTensor, not one-hot)
             loss = criterion(output, target_batch)
             ppl = math.exp(loss.item())
-            if OKed: print("OK")
-            if (count_batch + 1) % 15 == 0:
+            if (count_batch + 1) % 25 == 0:
                 print('Epoch:', '%04d' % (epoch + 1), 'Batch:', '%02d' % (count_batch + 1), f'/{batch_number}',
                       'loss =', '{:.6f}'.format(loss), 'ppl =', '{:.6}'.format(ppl))
 
             loss.backward()
-            if OKed: print("OK")
             optimizer.step()
-            if OKed: 
-                print("OK")
-                OKed=False;
 
             count_batch += 1
         print('Epoch:', '%04d' % (epoch + 1), 'Batch:', '%02d' % (count_batch + 1), f'/{batch_number}',
@@ -368,7 +360,7 @@ if __name__ == '__main__':
     n_hidden = 128 # number of hidden units in one cell
     batch_size = 128 # batch size
     learn_rate = 0.0005
-    all_epoch = 2 #the all epoch for training
+    all_epoch = 5 #the all epoch for training
     emb_size = 256 #embeding size
     save_checkpoint_epoch = 5 # save a checkpoint per save_checkpoint_epoch epochs !!! Note the save path !!!
     data_root = 'penn_small'
