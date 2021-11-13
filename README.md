@@ -9,7 +9,11 @@
 
 2. ReLSTM copy.py
 
-重构的多层LSTM
+重构的多层LSTM。默认层数是7，将main段中
+```python    
+train_LSTMlm(n_class,emb_size,1)
+```
+的第三个参数改为0即可实现2层。
 
 ### 多层LSTM的思路：
 

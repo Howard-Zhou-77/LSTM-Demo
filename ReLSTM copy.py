@@ -16,8 +16,8 @@ emb_size = 256 #embeding size
 save_checkpoint_epoch = 5 # save a checkpoint per save_checkpoint_epoch epochs !!! Note the save path !!!
 data_root = 'penn_small'
 train_path = os.path.join(data_root, 'train.txt') # the path of train dataset
-tensors:List[torch.Tensor] = list();
-cells:List[torch.Tensor] = list();
+tensors:List[List[torch.Tensor]] = list();
+cells:List[List[torch.Tensor]] = list();
 
 def make_batch(train_path, word2number_dict, batch_size, n_step):
     all_input_batch = []
@@ -144,27 +144,38 @@ class TextLSTM_1(nn.Module):
         self.n_hidden=n_hidden
     def forward(self,X):
         X=self.C(X);
-        hidden_state = torch.zeros(1, len(X), self.n_hidden) if len(tensors)==0 else tensors[0]  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
-        cell_state = torch.zeros(1, len(X), self.n_hidden) if len(cells)==0 else cells[0]
-        #print(len(X))
+        hidden_s= [] if len(tensors)==0 else tensors[0]
+        cell_s=[] if len(cells)==0 else cells[0]
+        hidden_state = torch.zeros(1, len(X), self.n_hidden) if len(hidden_s)==0 else hidden_s[0]  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
+        cell_state = torch.zeros(1, len(X), self.n_hidden) if len(cell_s)==0 else cell_s[0]
+        length=len(X)
         X=X.transpose(0,1);
-        
-
+        i=0
         for X_t in X:
+            if i>0: 
+                hidden_state = torch.zeros(1,length,self.n_hidden) if len(hidden_s)<=i else hidden_s[i]
+                cell_state = torch.zeros(1, length, self.n_hidden) if len(cell_s)<=i else cell_s[i]
             input_gate = torch.sigmoid(self.W_ii(X_t)+self.b_ii+self.W_hi(hidden_state)+self.b_hi)
             forget_gate = torch.sigmoid(self.W_if(X_t)+self.b_if+self.W_hf(hidden_state)+self.b_hf)
             cell_gate = torch.tanh(self.W_ig(X_t)+self.b_ig+self.W_hg(hidden_state)+self.b_hg)
             output_gate = torch.sigmoid(self.W_io(X_t)+self.b_io+self.W_ho(hidden_state)+self.b_ho)
             cell_state = forget_gate*cell_state+input_gate*cell_gate;
             hidden_state = output_gate*torch.tanh(cell_state);
+            if len(cell_s)<=i:
+                hidden_s.append(hidden_state.detach())
+                cell_s.append(cell_state.detach())
+            else:
+                hidden_s[i]=hidden_state.detach()
+                cell_s[i]=cell_state.detach()
+            i=i+1
         outputs=output_gate[-1]
         model=self.W(outputs)+self.b;
         if len(tensors)==0: 
-            tensors.append(hidden_state.detach());
-            cells.append(cell_state.detach())
+            tensors.append(hidden_s);
+            cells.append(cell_s)
         else: 
-            tensors[0]=hidden_state.detach()
-            cells[0]=cell_state.detach()
+            tensors[0]=hidden_s
+            cells[0]=cell_s
         return torch.cat([hidden_state[0],model],dim=1);
 class TextLSTM_2(nn.Module):
     def __init__(self,n_class,emb_size,n_hidden,numero:int):
@@ -196,28 +207,40 @@ class TextLSTM_2(nn.Module):
     def forward(self,X):
         # X=self.C(X);
         #print(X.shape)
-        hidden_state = torch.zeros(1, len(X), self.n_hidden) if len(tensors)<=self.numero+1 else tensors[self.numero+1]  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
-        cell_state = torch.zeros(1, len(X), self.n_hidden) if len(cells)<=self.numero+1 else cells[self.numero+1]
-        #print(len(X))
+        hidden_s= [] if len(tensors)<=self.numero+1 else tensors[self.numero+1]
+        cell_s=[] if len(cells)<=self.numero+1 else cells[self.numero+1]
+        hidden_state = torch.zeros(1, len(X), self.n_hidden) if len(hidden_s)==0 else hidden_s[0]  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
+        cell_state = torch.zeros(1, len(X), self.n_hidden) if len(cell_s)==0 else cell_s[0]
+        
         #X=X.transpose(0,1);
         #print(X.shape)
-        
+        i=0
         for X_t in X:
             #print(X_t.shape);print(hidden_state.shape);exit()
+            if i>0: 
+                hidden_state = torch.zeros(1,len(X),self.n_hidden) if len(hidden_s)<=i else hidden_s[i]
+                cell_state = torch.zeros(1, len(X), self.n_hidden) if len(cell_s)<=i else cell_s[i]
             input_gate = torch.sigmoid(self.W_ii(X_t)+self.b_ii+self.W_hi(hidden_state)+self.b_hi)
             forget_gate = torch.sigmoid(self.W_if(X_t)+self.b_if+self.W_hf(hidden_state)+self.b_hf)
             cell_gate = torch.tanh(self.W_ig(X_t)+self.b_ig+self.W_hg(hidden_state)+self.b_hg)
             output_gate = torch.sigmoid(self.W_io(X_t)+self.b_io+self.W_ho(hidden_state)+self.b_ho)
             cell_state = forget_gate*cell_state+input_gate*cell_gate;
             hidden_state = output_gate*torch.tanh(cell_state);
+            if len(cell_s)<=i:
+                hidden_s.append(hidden_state.detach())
+                cell_s.append(cell_state.detach())
+            else:
+                hidden_s[i]=hidden_state.detach()
+                cell_s[i]=cell_state.detach()
+            i=i+1
         outputs=output_gate[-1]
         model=self.W(outputs)+self.b;
         if len(tensors)<=self.numero+1: 
-            tensors.append(hidden_state.detach());
-            cells.append(cell_state.detach());
+            tensors.append(hidden_s);
+            cells.append(cell_s);
         else: 
-            tensors[self.numero+1]=hidden_state.detach();
-            cells[self.numero+1]=cell_state.detach();
+            tensors[self.numero+1]=hidden_s;
+            cells[self.numero+1]=cell_s;
         return torch.cat([hidden_state[0],model],dim=1);
 
 class TextLSTM_3(nn.Module):
@@ -248,25 +271,37 @@ class TextLSTM_3(nn.Module):
         self.n_hidden=n_hidden
     def forward(self,X):
         # X=self.C(X);
-        hidden_state = torch.zeros(1, len(X), self.n_hidden) if len(tensors)<=self.numero+1 else tensors[-1]  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
-        cell_state = torch.zeros(1, len(X), self.n_hidden) if len(cells)<=self.numero+1 else cells[-1]
+        hidden_s= [] if len(tensors)<=self.numero+1 else tensors[self.numero+1]
+        cell_s=[] if len(cells)<=self.numero+1 else cells[self.numero+1]
+        hidden_state = torch.zeros(1, len(X), self.n_hidden) if len(hidden_s)==0 else hidden_s[0]  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
+        cell_state = torch.zeros(1, len(X), self.n_hidden) if len(cell_s)==0 else cell_s[0]
         #X=X.transpose(0,1);
-
+        i=0;
         for X_t in X:
+            if i>0: 
+                hidden_state = torch.zeros(1,len(X),self.n_hidden) if len(hidden_s)<=i else hidden_s[i]
+                cell_state = torch.zeros(1, len(X), self.n_hidden) if len(cell_s)<=i else cell_s[i]
             input_gate = torch.sigmoid(self.W_ii(X_t)+self.b_ii+self.W_hi(hidden_state)+self.b_hi)
             forget_gate = torch.sigmoid(self.W_if(X_t)+self.b_if+self.W_hf(hidden_state)+self.b_hf)
             cell_gate = torch.tanh(self.W_ig(X_t)+self.b_ig+self.W_hg(hidden_state)+self.b_hg)
             output_gate = torch.sigmoid(self.W_io(X_t)+self.b_io+self.W_ho(hidden_state)+self.b_ho)
             cell_state = forget_gate*cell_state+input_gate*cell_gate;
             hidden_state = output_gate*torch.tanh(cell_state);
+            if len(cell_s)<=i:
+                hidden_s.append(hidden_state.detach())
+                cell_s.append(cell_state.detach())
+            else:
+                hidden_s[i]=hidden_state.detach()
+                cell_s[i]=cell_state.detach()
+            i=i+1
         outputs=output_gate[-1]
         model=self.W(outputs)+self.b;
         if len(tensors)<=self.numero+1:
-            tensors.append(hidden_state.detach());
-            cells.append(cell_state.detach())
+            tensors.append(hidden_s);
+            cells.append(cell_s)
         else:
-            tensors[-1]=hidden_state.detach();
-            cells[-1]=cell_state.detach();
+            tensors[-1]=hidden_s;
+            cells[-1]=cell_s;
         return model;
 def train_LSTMlm(n_class,emb_size,mid_layers=5):
     # model = TextLSTM(n_class,emb_size,n_hidden)
@@ -307,6 +342,7 @@ def train_LSTMlm(n_class,emb_size,mid_layers=5):
             optimizer.step()
 
             count_batch += 1
+
         print('Epoch:', '%04d' % (epoch + 1), 'Batch:', '%02d' % (count_batch + 1), f'/{batch_number}',
                 'loss =', '{:.6f}'.format(loss), 'ppl =', '{:.6}'.format(ppl))
 
