@@ -31,3 +31,7 @@ return torch.cat([hidden_state[0],model],dim=1)
 因此要设计三种神经元，一种放在最开头，`n_class`个->`n_class+n_hidden`个；一种放在中间，`n_class+n_hidden`个->`n_class+n_hidden`个，最后一种放在最后，`n_class+n_hidden`个->`n_class`个。三种神经元分别设定为`TextLSTM_1`，`TextLSTM_2`和`Text_LSTM_3`。三种神经元运算过程大同小异，只是输出和输入的时候需要调整。同时三种神经元输出前还要更新对应的tensors和cells中的元素。
 
 最后注意：本模型运算量较大，建议上GPU。
+
+### 其他文件
+
+`seqtext.py`和`torchtest.py`分别是测试`nn.sequential()`和`nn.Linear()`的测试文件。
