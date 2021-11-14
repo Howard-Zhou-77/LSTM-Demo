@@ -366,7 +366,7 @@ def train_LSTMlm(n_class,emb_size,mid_layers=5):
                   'ppl =', '{:.6}'.format(math.exp(total_loss / count_loss)))
 
         if (epoch+1) % save_checkpoint_epoch == 0:
-            torch.save(model, f'models/LSTMlm_model_epoch{epoch+1}.ckpt')
+            torch.save(model, f'models/LSTMlm_model_epoch_{epoch+1}.ckpt')
 
 def test_LSTMlm(select_model_path):
     model = torch.load(select_model_path, map_location="cpu")  #load the selected model
@@ -434,5 +434,5 @@ if __name__ == '__main__':
     train_LSTMlm(n_class,emb_size,1)
 
     print("\nTest the LSTMLM……………………")
-    select_model_path = "models/LSTMlm_model_epoch10.ckpt"
+    select_model_path = "models/LSTMlm_model_epoch_5.ckpt"
     test_LSTMlm(select_model_path)
